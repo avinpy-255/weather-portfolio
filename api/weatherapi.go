@@ -1,10 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	"go.opentelemetry.io/otel"
 	// "os"
 )
 
@@ -48,8 +51,11 @@ type WeatherResponse struct {
 	Description string
 }
 
-func GetWeather(lat, lon string) (*WeatherResponse, error) {
+func GetWeather(ctx context.Context, lat, lon string) (*WeatherResponse, error) {
 	// apiKey := os.Getenv("OPENWEATHER_API_KEY")
+	tr := otel.Tracer("weather-fetch")
+	ctx, span := tr.Start(ctx, "GetWeather")
+	defer span.End()
 	url := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,relative_humidity_2m,weathercode&timezone=auto", lat, lon)
 
 	fmt.Println("Calling weather API:", url)
