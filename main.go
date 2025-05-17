@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"log"
 	"net"
@@ -47,13 +48,31 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Failed to get location: ", err)
 		locationData = &api.LocationData{Country: "Unknown", RegionName: "Unknown", Timezone: "Unknown"}
 	}
+
+	weatherData, err := api.GetWeather(
+		fmt.Sprintf("%f", locationData.Lat),
+		fmt.Sprintf("%f", locationData.Lon),
+	)
+	if err != nil {
+		log.Println("Failed to get weather: ", err)
+	} else {
+		log.Printf("Weather: %s (code %d)\n", weatherData.Description, weatherData.CurrentWeather.Weathercode)
+	}
+	data := struct {
+		Location *api.LocationData
+		Weather  *api.WeatherResponse
+	}{
+		Location: locationData,
+		Weather:  weatherData,
+	}
+
 	tmpl, err := template.ParseFiles("static/index.html")
 	if err != nil {
 		http.Error(w, "Template parsing error", http.StatusInternalServerError)
 		return
 	}
 
-	err = tmpl.Execute(w, locationData)
+	err = tmpl.Execute(w, data)
 	if err != nil {
 		http.Error(w, "Template executing error", http.StatusInternalServerError)
 	}
